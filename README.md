@@ -8,7 +8,7 @@
 Разработка системы управления фитнес-клубом. Система предназначена для управления клиентами, инструкторами, тренировками, групповыми занятиями, а также клубными картами. В системе будет поддерживаться авторизация, управление пользователями, а также система ролей.
 
 ## Стек технологий
-PostgreSQL + django + psycopg2 lib driver for python raw sql queries
+PostgreSQL + NodeJS
 
 ## Функциональные требования:
 ### Обязательные функции:
@@ -42,95 +42,100 @@ PostgreSQL + django + psycopg2 lib driver for python raw sql queries
 ## Описание таблиц базы данных:
 
 ### 1. Таблица `Role`:
-   - **id** (PK): Уникальный идентификатор роли.
-   - **role**: Роль пользователя (администратор, клиент, инструктор).
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор роли.
+   - **role** CHARACTER VARYING(31) UNIQUE: Роль пользователя (администратор, клиент, инструктор).
 
-### 2. Таблица `User`:
-   - **id** (PK): Уникальный идентификатор пользователя.
-   - **username**: Имя пользователя.
-   - **password**: Пароль.
-   - **role_id**: Роль пользователя (администратор, клиент, инструктор).
+### 2. Таблица `Account`:
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор пользователя.
+   - **username** CHARACTER VARYING(31) NOT NULL UNIQUE: Имя пользователя.
+   - **password** CHARACTER VARYING(31) NOT NULL: Пароль.
+   - **role_id** INTEGER NOT NULL REFERENCES Role (id): Роль пользователя (администратор, клиент, инструктор) (многие к одному).
 
 ### 3. Таблица `Client`:
-   - **id** (PK): Уникальный идентификатор клиента.
-   - **fullname**: Полное имя клиента.
-   - **age**: Возраст клиента.
-   - **phone_number**: Номер телефона клиента.
-   - **expenses**: Затраты клиента на тренировки.
-   - **cupon_id** (FK): Купон, предоставляющий скидку.
-   - **user_id** (FK): Связь с таблицей пользователей (один к одному).
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор клиента.
+   - **name** CHARACTER VARYING(31) NOT NULL: Имя клиента.
+   - **surname** CHARACTER VARYING(31) NOT NULL: Фамилия клиента.
+   - **patronymic** CHARACTER VARYING(31) NOT NULL: Отчество клиента.
+   - **age** INTEGER CHECK(age>18 AND age<120): Возраст клиента.
+   - **phone_number** CHARACTER VARYING(31) NOT NULL: Номер телефона клиента.
+   - **expenses** MONEY DEFAULT 0: Затраты клиента на тренировки.
+   - **account_id** INTEGER UNIQUE NOT NULL REFERENCES Account (id) ON DELETE CASCADE: Связь с таблицей пользователей (один к одному).
+   - **cupon_id** INTEGER REFERENCES Cupon (id) ON DELETE SET NULL: Купон, предоставляющий скидку.
    
 ### 4. Таблица `Instructor`:
-   - **id** (PK): Уникальный идентификатор инструктора.
-   - **fullname**: Полное имя инструктора.
-   - **age**: Возраст инструктора.
-   - **phone_number**: Номер телефона инструктора.
-   - **about**: Дополнительная информация об инструкторе.
-   - **photo**: Фото инструктора.
-   - **user_id** (FK): Связь с таблицей пользователей (один к одному).
-   - **workouts**: Связь с таблицей занятий (многие ко многим).
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор инструктора.
+   - **name** CHARACTER VARYING(31) NOT NULL: Имя клиента.
+   - **surname** CHARACTER VARYING(31) NOT NULL: Фамилия клиента.
+   - **patronymic** CHARACTER VARYING(31) NOT NULL: Отчество клиента.
+   - **age** INTEGER CHECK(age>18 AND age<120): Возраст инструктора.
+   - **phone_number** CHARACTER VARYING(31) UNIQUE NOT NULL: Номер телефона инструктора.
+   - **about** TEXT: Дополнительная информация об инструкторе.
+   - **url_photo** TEXT: Фото инструктора.
+   - **account_id** INTEGER REFERENCES Account (id) ON DELETE CASCADE: Связь с таблицей пользователей (один к одному).
+   - **workouts**: Связь с таблицей занятий (многие ко многим), осуществляется через промежуточную таблицу.
 
 ### 5. Таблица `WorkoutCategory`:
-   - **id** (PK): Уникальный идентификатор категории.
-   - **category_name**: Название категории.
-   - **category_about**: Подробнее о категории.
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор категории.
+   - **category_name** CHARACTER VARYING(31) UNIQUE NOT NULL: Название категории.
+   - **category_about** TEXT: Подробнее о категории.
 
 ### 6. Таблица `Workout`:
-   - **id** (PK): Уникальный идентификатор тренировки.
-   - **start_time**: Время начала тренировки.
-   - **end_time**: Время окончания тренировки.
-   - **price**: Стоимость тренировки.
-   - **category_id** (FK): Категория тренировки (многие к одному).
-   - **group_id** (FK): Связь с таблицей групп (многие к одному).
-   - **hall_id** (FK): Связь с таблицей залов (многие к одному).
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор тренировки.
+   - **day** CHARACTER VARYING(10) CHECK(day IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')): День проведения занятия.
+   - **start_time** TIME NOT NULL: Время начала тренировки.
+   - **end_time** TIME NOT NULL: Время окончания тренировки.
+   - **category_id** INTEGER NULL REFERENCES WorkoutCategory (id) ON DELETE SET NULL: Категория тренировки (многие к одному).
+   - **group_id** INTEGER NULL REFERENCES StudyGroup (id) ON DELETE SET NULL: Связь с таблицей групп (многие к одному).
+   - **hall_id** INTEGER NULL REFERENCES Hall (id) ON DELETE SET NULL: Связь с таблицей залов (многие к одному).
 
-### 7. Таблица `Group`:
-   - **id** (PK): Уникальный идентификатор группы.
-   - **name**: Название группы.
-   - **all_price**: Общая стоимость всех тренировок группы.
-   - **max_workouts**: Максимальное количество тренировок для группы.
-   - **max_clients**: Максимальное количество клиентов в группе.
-   - **is_open**: Флаг, открыта ли группа для записи.
-   - **is_edit**: Флаг, можно ли редактировать группу.
-   - **clients**: Связь с таблицей клиентов (многие ко многим).
+### 7. Таблица `StudyGroup`:
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор группы.
+   - **name** CHARACTER VARYING(31) NOT NULL: Название группы.
+   - **price** MONEY DEFAULT 0: Цена вхождения в группу.
+   - **max_workouts** INTEGER DEFAULT 3 CHECK(max_workouts > 2): Максимальное количество тренировок для группы.
+   - **max_clients** INTEGER DEFAULT 3 CHECK(max_clients > 2): Максимальное количество клиентов в группе.
+   - **is_open** BOOLEAN DEFAULT TRUE: Флаг для определения возможности вступить в группу.
+   - **clients**: Связь с таблицей клиентов (многие ко многим), осуществляется через промежуточную таблицу.
 
-### 8. Таблица `GroupSchedule`:
-   - **id** (PK): Уникальный идентификатор расписания группы.
-   - **description**: Описание расписания.
-   - **group_id** (FK): Связь с таблицей групп (один к одному).
+### 8. Таблица `Hall`:
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор зала.
+   - **name** CHARACTER VARYING(31) NOT NULL: Название зала.
+   - **city** CHARACTER VARYING(31) NOT NULL: Название города.
+   - **street** CHARACTER VARYING(31) NOT NULL: Название улицы.
+   - **house_number** INTEGER NOT NULL CHECK(house_number > 0): Номер дома.
 
-### 9. Таблица `Hall`:
-   - **id** (PK): Уникальный идентификатор зала.
-   - **name**: Название зала.
-   - **address**: Адрес зала.
+### 9. Таблица `ClubCardCategory`:
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор категории клубной карты.
+   - **name** CHARACTER VARYING(31) UNIQUE NOT NULL: Название категории.
+   - **discount**: INTEGER DEFAULT 0 CHECK(discount >= 0 AND discount <= 100) Скидка по карте в процентах.
 
 ### 10. Таблица `ClubCard`:
-   - **id** (PK): Уникальный идентификатор клубной карты.
-   - **name**: Название клубной карты.
-   - **end_date**: Дата окончания действия карты.
-   - **discount**: Скидка по карте в процентах.
-   - **client_id** (FK): Связь с таблицей клиентов (один к одному).
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор клубной карты.
+   - **end_date** DATE NOT NULL: Дата окончания действия карты.
+   - **category_id** INTEGER NOT NULL REFERENCES ClubCardCategory (id) ON DELETE CASCADE: Связь с таблицей категорий клубных карт (многие к одному)
+   - **client_id** INTEGER NOT NULL REFERENCES Client (id) ON DELETE CASCADE: Связь с таблицей клиентов (один к одному).
 
 ### 11. Таблица `Partner`:
-   - **id** (PK): Уникальный идентификатор партнера.
-   - **name**: Название партнера.
-   - **url**: Ссылка на сайт партнера.
-   - **logo**: Логотип партнера.
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор партнера.
+   - **name** CHARACTER VARYING(31) NOT NULL: Название партнера.
+   - **url** TEXT: Ссылка на сайт партнера.
+   - **url_logo** TEXT: Логотип партнера.
 
 ### 12. Таблица `Review`:
-   - **id** (PK): Уникальный идентификатор отзыва.
-   - **grade**: Оценка(от 1 до 5).
-   - **text**: Текст отзыва пользователя.
-   - **date**: Дата, когда был оставлен отзыв.
-   - **client_id** (FK): Клиент, оставивший отзыв (многие к одному).
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор отзыва.
+   - **grade** INTEGER DEFAULT 5 CHECK(grade > 0 AND grade < 6): Оценка.
+   - **text** TEXT NOT NULL: Текст отзыва пользователя.
+   - **date** DATE NOT NULL: Дата, когда был оставлен отзыв.
+   - **time** TIME NOT NULL: Время, в которое был отсавлен отзыв. 
+   - **client_id** INTEGER REFERENCES Client (id) ON DELETE SET NULL: Клиент, оставивший отзыв (многие к одному).
    
 ### 13. Таблица `Coupon`:
-   - **id** (PK): Уникальный идентификатор купона.
-   - **name**: Название купона.
-   - **description**: Описание купона.
-   - **code**: Уникальный код купона.
-   - **discount**: Скидка, предоставляемая купоном.
-   - **end_date**: Дата, до которой работает купон.
+   - **id** SERIAL PRIMARY KEY: Уникальный идентификатор купона.
+   - **name** CHARACTER VARYING(31) NOT NULL: Название купона.
+   - **description** TEXT: Описание купона.
+   - **code** CHARACTER(5) UNIQUE NOT NULL: Уникальный код купона.
+   - **discount** INTEGER DEFAULT 0 CHECK(discout >= 0 AND discout <= 100): Скидка, предоставляемая купоном.
+   - **end_date** DATE NOT NULL: Дата, до которой работает купон.
    
 ## Схема базы данных:
 На изображении ниже представлена схематическая модель базы данных с основными связями и типами полей.
